@@ -25,7 +25,15 @@ frontend/                           # Vue 联邦组件源码（构建后产物�
 
 ## 安装
 
-MoviePilot V3 → 插件市场 → 添加本仓库地址 → 安装「字幕机翻」。
+MoviePilot V3 → 插件市场 → 添加仓库地址：
+
+```
+https://github.com/shawnxustudio/MoviePilot-Plugins
+```
+
+然后安装「字幕机翻」。
+
+也可以直接把仓库地址填进系统的 `PLUGIN_MARKET` 环境变量。
 
 ## 前端开发
 

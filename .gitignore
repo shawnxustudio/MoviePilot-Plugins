@@ -1,0 +1,7 @@
+# 依赖与缓存（注意：插件产物 plugins.v3/*/dist 必须提交）
+**/node_modules/
+**/__pycache__/
+*.py[cod]
+*.log
+.env
+.DS_Store

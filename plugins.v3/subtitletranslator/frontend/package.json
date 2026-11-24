@@ -1,0 +1,18 @@
+{
+  "name": "moviepilot-plugin-subtitletranslator",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vue": "^3.5.13",
+    "vuetify": "3.7.3"
+  },
+  "devDependencies": {
+    "@module-federation/vite": "^1.23.10",
+    "@vitejs/plugin-vue": "^4.4.0",
+    "vite": "^5.4.11"
+  }
+}

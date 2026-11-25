@@ -11,6 +11,9 @@ MoviePilot V3 插件仓库，目前包含一个插件：
 - 多服务商（DeepSeek / 硅基流动 / 百炼 / Kimi / 智谱 / OpenRouter / Gemini / 自定义），每个服务商单独记 Key
 - 默认双语（译文在上、原文在下），可切仅译文
 - 队列后台跑，带阶段指示（提取 → 翻译 → 写入 → 刷新），完成推送 MP 通知
+<img width="659" height="406" alt="Snipaste_2026-11-25_11-06-16" src="https://github.com/user-attachments/assets/7291caad-c995-46c1-84b5-d7900fd371a5" />
+<img width="508" height="277" alt="Snipaste_2026-11-25_11-06-29" src="https://github.com/user-attachments/assets/ca1731d7-eb0e-45d7-8247-ee91ec8ce1e1" />
+<img width="618" height="379" alt="Snipaste_2026-11-25_11-10-02" src="https://github.com/user-attachments/assets/4572aa24-d0cc-4e22-ba89-23b780ba17cd" />
 
 详细说明见 [plugins.v3/subtitletranslator/README.md](plugins.v3/subtitletranslator/README.md)。
 

@@ -44,6 +44,16 @@ https://github.com/shawnxustudio/MoviePilot-Plugins
 
 也可以直接把仓库地址填进系统的 `PLUGIN_MARKET` 环境变量。
 
+## 校验
+
+```bash
+# V3 合同测试与纯逻辑测试
+python3 -m pytest tests/v3/subtitletranslator
+
+# V2 回退分支（用 V2 模块结构的桩跑一遍导入与关键逻辑）
+python3 scripts/check_v2_compat.py
+```
+
 ## 前端开发
 
 ```bash

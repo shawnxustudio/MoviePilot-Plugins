@@ -6,6 +6,7 @@ MoviePilot V3 插件仓库，目前包含一个插件：
 
 在 MoviePilot 里搜索媒体库影视，把内嵌字幕机翻成中文写回视频同目录，并刷新媒体服务器。
 
+- 同时支持 **MoviePilot V2 与 V3**（同一份实现，按宿主自动适配接口）
 - 搜索/点选翻译，不需要配置媒体目录，也不全盘扫描
 - 可选字幕轨（自动优先英文），PGS 图形字幕会标灰
 - 多服务商（DeepSeek / 硅基流动 / 百炼 / Kimi / 智谱 / OpenRouter / Gemini / 自定义），每个服务商单独记 Key
@@ -20,11 +21,16 @@ MoviePilot V3 插件仓库，目前包含一个插件：
 ## 目录结构
 
 ```
-package.v3.json                     # 插件市场索引
-plugins.v3/subtitletranslator/      # 插件本体（含前端构建产物 dist/）
+package.v3.json                     # V3 市场索引
+package.json                        # V2 市场索引（条目声明 "v2": true）
+plugins.v3/subtitletranslator/      # V3 插件本体（含 dist/ 与前端源码）
+plugins/subtitletranslator/         # V2 插件本体（与 V3 同一份实现 + 同一份 dist）
+tests/v3/subtitletranslator/        # 合同测试与纯逻辑测试
 icons/subtitletranslator.png        # 插件图标
-frontend/                           # Vue 联邦组件源码（构建后产物复制到插件 dist/）
 ```
+
+> `plugins/` 与 `plugins.v3/` 下的 `__init__.py` 必须**完全一致**，
+> `tests` 里有断言防止两份实现漂移。
 
 ## 安装
 

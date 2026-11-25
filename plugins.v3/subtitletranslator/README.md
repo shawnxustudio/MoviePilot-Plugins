@@ -2,6 +2,9 @@
 
 在 MoviePilot 里**搜索媒体库影视**，选中后把内嵌字幕机翻成中文，写回视频同目录并刷新媒体服务器。
 
+支持 **MoviePilot V2 / V3**：`plugins.v3/` 与 `plugins/` 下是同一份实现，按宿主自动选择
+`app.sdk`（V3）或 `app.helper` / `app.core`（V2）接口，两个版本共用同一套 Vue 联邦页面。
+
 从 [subtitle](https://github.com/shawnxustudio/subtitle)（跑在 9897 端口的 Flask 版）搬过来的「库内影视机翻」能力，改造成 MP 插件形态。
 
 ## 用法

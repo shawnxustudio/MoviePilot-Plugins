@@ -22,17 +22,34 @@ import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import quote
 
-import httpx2
+from fastapi import Request
 
 from app.schemas import RefreshMediaItem
-from app.sdk.config import settings
-from app.sdk.logging import logger
-from app.sdk.plugin import _PluginBase
-from app.sdk.services import MediaServerHelper
-from app.schemas.types import MessageType
-from fastapi import Request
+
+# MoviePilot V3 把宿主接口收口到 app.sdk；V2 仍然在 app.helper / app.core / app.log。
+# 这里两套都声明，运行在哪个宿主就用哪套，插件逻辑保持同一份。
+try:  # MoviePilot V3
+    from app.sdk.config import settings
+    from app.sdk.logging import logger
+    from app.sdk.plugin import _PluginBase
+    from app.sdk.services import MediaServerHelper
+    from app.schemas.types import MessageType as _NotifyType
+
+    _IS_V3 = True
+except ImportError:  # pragma: no cover - MoviePilot V2
+    from app.core.config import settings
+    from app.helper.mediaserver import MediaServerHelper
+    from app.log import logger
+    from app.plugins import _PluginBase
+    from app.schemas.types import NotificationType as _NotifyType
+
+    _IS_V3 = False
+
+try:  # V3 宿主内置 HTTPX2
+    import httpx2 as _http
+except ImportError:  # pragma: no cover - V2 宿主只有 requests
+    import requests as _http
 
 # ─────────────────────────────────────────────
 #  常量
@@ -148,6 +165,68 @@ _NUMBERED_LINE_RE = re.compile(r"^\s*(\d{1,4})\s*[|｜丨:：.、)）]\s*(.*)$")
 # ─────────────────────────────────────────────
 #  纯函数
 # ─────────────────────────────────────────────
+
+class _HttpSession:
+    """屏蔽 httpx2（V3）与 requests（V2）的差异，只暴露 get/post/close。"""
+
+    def __init__(self, timeout: int = 180, proxy: Optional[str] = None) -> None:
+        self.timeout = timeout
+        self.proxies = {"http": proxy, "https": proxy} if proxy else None
+        if _IS_V3:
+            kwargs: Dict[str, Any] = {"timeout": timeout}
+            if proxy:
+                kwargs["proxy"] = proxy
+            self._client = _http.Client(**kwargs)
+        else:  # pragma: no cover - V2
+            self._client = _http.Session()
+
+    def request(self, method: str, url: str, **kwargs: Any) -> Any:
+        """发一次请求，两个客户端都返回带 status_code / json() 的响应。"""
+        if _IS_V3:
+            return self._client.request(method, url, **kwargs)
+        kwargs.pop("timeout", None)
+        return self._client.request(
+            method, url, timeout=self.timeout, proxies=self.proxies, **kwargs
+        )
+
+    def get(self, url: str, **kwargs: Any) -> Any:
+        """GET 便捷方法。"""
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs: Any) -> Any:
+        """POST 便捷方法。"""
+        return self.request("POST", url, **kwargs)
+
+    def close(self) -> None:
+        """释放连接池。"""
+        try:
+            self._client.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _emby_json(instance: Any, path: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """
+    直接调用媒体服务器 REST 接口取 JSON。
+
+    V2 的 Emby 实例没有 V3 的 ``get_data``，所以这里统一用实例上的地址与密钥自己发请求，
+    两个版本走同一条路径。
+    """
+    host = str(getattr(instance, "_host", "") or "").rstrip("/")
+    api_key = str(getattr(instance, "_apikey", "") or "")
+    if not host or not api_key:
+        return None
+    query: Dict[str, Any] = {"api_key": api_key}
+    query.update(params or {})
+    try:
+        response = _http.get(f"{host}/emby/{path}", params=query, timeout=30)
+        if getattr(response, "status_code", 0) != 200:
+            return None
+        return response.json()
+    except Exception as error:  # noqa: BLE001
+        logger.debug(f"[字幕机翻] 媒体服务器接口失败 {path}: {error}")
+        return None
+
 
 def _which(name: str) -> Optional[str]:
     """按 PATH 查找可执行文件。"""
@@ -285,10 +364,8 @@ class _ChatClient:
         self.api_key = (api_key or "").strip()
         self.model = (model or "").strip() or str(self.preset.get("model") or "")
         self.base_url = (base_url or "").strip().rstrip("/") or str(self.preset.get("base_url") or "")
-        kwargs: Dict[str, Any] = {"timeout": timeout}
-        if proxy and str(proxy).startswith("http"):
-            kwargs["proxy"] = proxy
-        self.client = httpx2.Client(**kwargs)
+        proxy_value = proxy if proxy and str(proxy).startswith("http") else None
+        self.client = _HttpSession(timeout=timeout, proxy=proxy_value)
 
     def close(self) -> None:
         """释放连接池。"""
@@ -361,10 +438,11 @@ def _list_models(provider: str, api_key: str, base_url: str = "", proxy: Optiona
     base = (base_url or "").strip().rstrip("/") or str(preset.get("base_url") or "")
     if not base:
         return []
-    kwargs: Dict[str, Any] = {"timeout": 25}
-    if proxy and str(proxy).startswith("http"):
-        kwargs["proxy"] = proxy
-    with httpx2.Client(**kwargs) as client:
+    session = _HttpSession(
+        timeout=25, proxy=proxy if proxy and str(proxy).startswith("http") else None
+    )
+    try:
+        client = session
         if preset.get("kind") == "gemini":
             response = client.get(f"{base}/models", params={"key": api_key, "pageSize": 200})
             response.raise_for_status()
@@ -383,6 +461,8 @@ def _list_models(provider: str, api_key: str, base_url: str = "", proxy: Optiona
             payload = response.json()
             raw = payload.get("data", payload) if isinstance(payload, dict) else payload
             models = [str(item.get("id", "")) for item in raw if isinstance(item, dict)]
+    finally:
+        session.close()
     result = []
     for model in models:
         lowered = model.lower()
@@ -422,7 +502,7 @@ class SubtitleTranslator(_PluginBase):
     plugin_name = "字幕机翻"
     plugin_desc = "搜索媒体库影视，提取内嵌字幕并用大模型翻译为中文，写回同目录并刷新媒体服务器。"
     plugin_icon = "Moviepilot_A.png"
-    plugin_version = "2.6.1"
+    plugin_version = "2.7.0"
     plugin_author = "shawnxu"
     author_url = "https://github.com/shawnxustudio"
     plugin_config_prefix = "subtitletranslator_"
@@ -619,7 +699,8 @@ class SubtitleTranslator(_PluginBase):
             return None
         for _, service in services.items():
             instance = getattr(service, "instance", None)
-            if instance is not None and hasattr(instance, "get_data"):
+            # V3 的实例有 get_data；V2 只有 _host/_apikey，两个版本都按真实属性识别
+            if instance is not None and getattr(instance, "_apikey", None) is not None:
                 return instance
         return None
 
@@ -664,6 +745,20 @@ class SubtitleTranslator(_PluginBase):
                     return candidate
         return None
 
+    @staticmethod
+    def _emby_path(instance: Any, item_id: Optional[str] = None) -> str:
+        """拼出 Emby 的条目接口路径，有用户上下文时带上用户。"""
+        user = str(getattr(instance, "user", "") or "")
+        prefix = f"Users/{user}/" if user else ""
+        return f"{prefix}Items/{item_id}" if item_id else f"{prefix}Items"
+
+    def _item_json(self, item_id: str, fields: str) -> Optional[Dict[str, Any]]:
+        """按条目 ID 读取 Emby 详情。"""
+        instance = self._emby_instance()
+        if instance is None:
+            return None
+        return _emby_json(instance, self._emby_path(instance, item_id), {"Fields": fields})
+
     def _search_items(self, keyword: str, item_type: str, limit: int) -> List[Dict[str, Any]]:
         """通过媒体服务器接口搜索影视条目。"""
         instance = self._emby_instance()
@@ -672,22 +767,21 @@ class SubtitleTranslator(_PluginBase):
         types = item_type if item_type in ("Movie", "Series") else "Movie,Series"
         # 不带关键词时按入库时间倒序，最新入库的排最前；带关键词时按名称排便于对照
         if keyword.strip():
-            sort = "SortBy=SortName&SortOrder=Ascending"
+            sort_by, sort_order = "SortName", "Ascending"
         else:
-            sort = "SortBy=DateCreated&SortOrder=Descending"
-        url = (
-            "[HOST]emby/Users/[USER]/Items?api_key=[APIKEY]&Recursive=true"
-            f"&IncludeItemTypes={types}&Limit={limit}&{sort}"
-            "&Fields=Path,MediaSources,ProductionYear,ImageTags,DateCreated"
-        )
+            sort_by, sort_order = "DateCreated", "Descending"
+        query: Dict[str, Any] = {
+            "Recursive": "true",
+            "IncludeItemTypes": types,
+            "Limit": limit,
+            "Fields": "Path,MediaSources,ProductionYear,ImageTags,DateCreated",
+            "SortBy": sort_by,
+            "SortOrder": sort_order,
+        }
         if keyword.strip():
-            url += f"&SearchTerm={quote(keyword.strip())}"
-        response = instance.get_data(url)
-        if response is None or response.status_code != 200:
-            return []
-        try:
-            payload = response.json()
-        except Exception:  # noqa: BLE001
+            query["SearchTerm"] = keyword.strip()
+        payload = _emby_json(instance, self._emby_path(instance), query)
+        if not payload:
             return []
 
         results: List[Dict[str, Any]] = []
@@ -773,13 +867,9 @@ class SubtitleTranslator(_PluginBase):
         server_path = params.get("path", "")
         local = self._resolve_local(server_path)
         if local is None and item_id:
-            instance = self._emby_instance()
-            if instance is not None:
-                response = instance.get_data(
-                    f"[HOST]emby/Users/[USER]/Items/{item_id}?api_key=[APIKEY]&Fields=Path"
-                )
-                if response is not None and response.status_code == 200:
-                    local = self._resolve_local(str(response.json().get("Path") or ""))
+            detail = self._item_json(item_id, "Path")
+            if detail:
+                local = self._resolve_local(str(detail.get("Path") or ""))
         if local is None:
             return {"success": False, "message": "无法定位本地文件"}
         if local.is_dir():
@@ -1164,16 +1254,11 @@ class SubtitleTranslator(_PluginBase):
         """读取条目时长（分钟），用于估算翻译耗时。"""
         if not item_id:
             return 0.0
-        instance = self._emby_instance()
-        if instance is None:
-            return 0.0
-        response = instance.get_data(
-            f"[HOST]emby/Users/[USER]/Items/{item_id}?api_key=[APIKEY]&Fields=RunTimeTicks"
-        )
-        if response is None or response.status_code != 200:
+        detail = self._item_json(item_id, "RunTimeTicks")
+        if not detail:
             return 0.0
         try:
-            ticks = float(response.json().get("RunTimeTicks") or 0)
+            ticks = float(detail.get("RunTimeTicks") or 0)
         except Exception:  # noqa: BLE001
             return 0.0
         return ticks / 10_000_000 / 60
@@ -1182,13 +1267,9 @@ class SubtitleTranslator(_PluginBase):
         """把选中的条目展开成一组本地视频文件。"""
         local = self._resolve_local(server_path)
         if local is None and item_id:
-            instance = self._emby_instance()
-            if instance is not None:
-                response = instance.get_data(
-                    f"[HOST]emby/Users/[USER]/Items/{item_id}?api_key=[APIKEY]&Fields=Path"
-                )
-                if response is not None and response.status_code == 200:
-                    local = self._resolve_local(str(response.json().get("Path") or ""))
+            detail = self._item_json(item_id, "Path")
+            if detail:
+                local = self._resolve_local(str(detail.get("Path") or ""))
         if local is None:
             self._log(f"无法定位本地文件：{server_path}")
             return []
@@ -1350,6 +1431,6 @@ class SubtitleTranslator(_PluginBase):
         if failures:
             lines.append("失败原因：" + failures[0].get("message", "")[:120])
         try:
-            self.post_message(mtype=MessageType.Plugin, title=title, text="\n".join(lines))
+            self.post_message(mtype=_NotifyType.Plugin, title=title, text="\n".join(lines))
         except Exception as error:  # noqa: BLE001
             logger.warning(f"[字幕机翻] 通知发送失败：{error}")

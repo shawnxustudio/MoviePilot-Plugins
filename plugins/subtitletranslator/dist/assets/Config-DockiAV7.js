@@ -13,17 +13,21 @@ const _hoisted_7 = { class: "cfg-body" };
 const _hoisted_8 = { class: "cfg-nav" };
 const _hoisted_9 = ["onClick"];
 const _hoisted_10 = { class: "nav-label" };
-const _hoisted_11 = { class: "nav-sub" };
-const _hoisted_12 = { class: "cfg-content" };
-const _hoisted_13 = { class: "switch-row" };
-const _hoisted_14 = { class: "grid-2" };
-const _hoisted_15 = { class: "grid-3" };
-const _hoisted_16 = { class: "panel-head panel-head--row" };
-const _hoisted_17 = { class: "panel-title" };
-const _hoisted_18 = { class: "panel-desc" };
-const _hoisted_19 = { class: "grid-2" };
-const _hoisted_20 = { class: "model-row mt-3" };
-const _hoisted_21 = { class: "provider-status mt-3" };
+const _hoisted_11 = {
+  key: 0,
+  class: "nav-current"
+};
+const _hoisted_12 = { class: "nav-sub" };
+const _hoisted_13 = { class: "cfg-content" };
+const _hoisted_14 = { class: "switch-row" };
+const _hoisted_15 = { class: "grid-2" };
+const _hoisted_16 = { class: "grid-3" };
+const _hoisted_17 = { class: "panel-head panel-head--row" };
+const _hoisted_18 = { class: "panel-title" };
+const _hoisted_19 = { class: "panel-desc" };
+const _hoisted_20 = { class: "grid-2" };
+const _hoisted_21 = { class: "model-row mt-3" };
+const _hoisted_22 = { class: "provider-status mt-3" };
 
 
 const _sfc_main = {
@@ -236,11 +240,11 @@ return (_ctx, _cache) => {
   const _component_v_icon = __mf_18("v-icon");
   const _component_v_btn = __mf_18("v-btn");
   const _component_v_alert = __mf_18("v-alert");
-  const _component_v_chip = __mf_18("v-chip");
   const _component_v_switch = __mf_18("v-switch");
   const _component_v_select = __mf_18("v-select");
   const _component_v_text_field = __mf_18("v-text-field");
   const _component_v_textarea = __mf_18("v-textarea");
+  const _component_v_chip = __mf_18("v-chip");
   const _component_v_autocomplete = __mf_18("v-autocomplete");
 
   return (__mf_16(), __mf_10("section", _hoisted_1, [
@@ -324,7 +328,7 @@ return (_ctx, _cache) => {
       __mf_11("nav", _hoisted_8, [
         __mf_11("button", {
           type: "button",
-          class: __mf_4(["nav-item", { 'nav-item--active': active.value === 'global' }]),
+          class: __mf_4(["nav-item nav-item--global", { 'nav-item--active': active.value === 'global' }]),
           onClick: _cache[1] || (_cache[1] = $event => (active.value = 'global'))
         }, [
           __mf_13(_component_v_icon, {
@@ -333,7 +337,7 @@ return (_ctx, _cache) => {
           }),
           _cache[20] || (_cache[20] = __mf_11("span", { class: "nav-label" }, "全局设置", -1))
         ], 2),
-        _cache[22] || (_cache[22] = __mf_11("div", { class: "nav-heading" }, "翻译服务商", -1)),
+        _cache[21] || (_cache[21] = __mf_11("div", { class: "nav-heading" }, "翻译服务商", -1)),
         (__mf_16(true), __mf_10(__mf_6, null, __mf_17(providerList.value, (provider) => {
           return (__mf_16(), __mf_10("button", {
             key: provider.key,
@@ -346,30 +350,20 @@ return (_ctx, _cache) => {
             }, null, 2),
             __mf_11("span", _hoisted_10, __mf_5(provider.name), 1),
             (config.provider === provider.key)
-              ? (__mf_16(), __mf_8(_component_v_chip, {
-                  key: 0,
-                  size: "x-small",
-                  variant: "tonal",
-                  class: "nav-current"
-                }, {
-                  default: __mf_20(() => [...(_cache[21] || (_cache[21] = [
-                    __mf_12("当前", -1)
-                  ]))]),
-                  _: 1
-                }))
+              ? (__mf_16(), __mf_10("span", _hoisted_11, "当前"))
               : __mf_9("", true),
-            __mf_11("span", _hoisted_11, __mf_5(modelsMap[provider.key] || '未配置'), 1)
+            __mf_11("span", _hoisted_12, __mf_5(modelsMap[provider.key] || '未配置'), 1)
           ], 10, _hoisted_9))
         }), 128))
       ]),
-      __mf_11("div", _hoisted_12, [
+      __mf_11("div", _hoisted_13, [
         (active.value === 'global')
           ? (__mf_16(), __mf_10(__mf_6, { key: 0 }, [
-              _cache[24] || (_cache[24] = __mf_11("div", { class: "panel-head" }, [
+              _cache[23] || (_cache[23] = __mf_11("div", { class: "panel-head" }, [
                 __mf_11("h2", { class: "panel-title" }, "全局设置"),
                 __mf_11("p", { class: "panel-desc" }, "任务行为与翻译输出格式；服务商相关的密钥与模型在左侧逐个维护。")
               ], -1)),
-              __mf_11("div", _hoisted_13, [
+              __mf_11("div", _hoisted_14, [
                 __mf_13(_component_v_switch, {
                   modelValue: config.enabled,
                   "onUpdate:modelValue": _cache[2] || (_cache[2] = $event => ((config.enabled) = $event)),
@@ -407,7 +401,7 @@ return (_ctx, _cache) => {
                   inset: ""
                 }, null, 8, ["modelValue"])
               ]),
-              __mf_11("div", _hoisted_14, [
+              __mf_11("div", _hoisted_15, [
                 __mf_13(_component_v_select, {
                   modelValue: config.output_mode,
                   "onUpdate:modelValue": _cache[6] || (_cache[6] = $event => ((config.output_mode) = $event)),
@@ -427,7 +421,7 @@ return (_ctx, _cache) => {
                   "hide-details": ""
                 }, null, 8, ["modelValue", "items"])
               ]),
-              __mf_11("div", _hoisted_15, [
+              __mf_11("div", _hoisted_16, [
                 __mf_13(_component_v_text_field, {
                   modelValue: config.batch_size,
                   "onUpdate:modelValue": _cache[8] || (_cache[8] = $event => ((config.batch_size) = $event)),
@@ -477,7 +471,7 @@ return (_ctx, _cache) => {
                 density: "compact",
                 class: "mt-4"
               }, {
-                default: __mf_20(() => [...(_cache[23] || (_cache[23] = [
+                default: __mf_20(() => [...(_cache[22] || (_cache[22] = [
                   __mf_12(" 切换「当前使用的服务商」后，翻译会使用该服务商下维护的密钥与模型。 ", -1)
                 ]))]),
                 _: 1
@@ -485,9 +479,9 @@ return (_ctx, _cache) => {
             ], 64))
           : (activeProvider.value)
             ? (__mf_16(), __mf_10(__mf_6, { key: 1 }, [
-                __mf_11("div", _hoisted_16, [
+                __mf_11("div", _hoisted_17, [
                   __mf_11("div", null, [
-                    __mf_11("h2", _hoisted_17, [
+                    __mf_11("h2", _hoisted_18, [
                       __mf_13(_component_v_icon, {
                         icon: activeProvider.value.icon,
                         size: "20",
@@ -495,7 +489,7 @@ return (_ctx, _cache) => {
                       }, null, 8, ["icon"]),
                       __mf_12(__mf_5(activeProvider.value.name), 1)
                     ]),
-                    __mf_11("p", _hoisted_18, __mf_5(activeProvider.value.hint), 1)
+                    __mf_11("p", _hoisted_19, __mf_5(activeProvider.value.hint), 1)
                   ]),
                   (config.provider !== activeProvider.value.key)
                     ? (__mf_16(), __mf_8(_component_v_btn, {
@@ -506,7 +500,7 @@ return (_ctx, _cache) => {
                         "prepend-icon": "mdi-check-circle-outline",
                         onClick: _cache[12] || (_cache[12] = $event => (config.provider = activeProvider.value.key))
                       }, {
-                        default: __mf_20(() => [...(_cache[25] || (_cache[25] = [
+                        default: __mf_20(() => [...(_cache[24] || (_cache[24] = [
                           __mf_12(" 设为当前 ", -1)
                         ]))]),
                         _: 1
@@ -517,13 +511,13 @@ return (_ctx, _cache) => {
                         color: "primary",
                         variant: "flat"
                       }, {
-                        default: __mf_20(() => [...(_cache[26] || (_cache[26] = [
+                        default: __mf_20(() => [...(_cache[25] || (_cache[25] = [
                           __mf_12("当前使用中", -1)
                         ]))]),
                         _: 1
                       }))
                 ]),
-                __mf_11("div", _hoisted_19, [
+                __mf_11("div", _hoisted_20, [
                   __mf_13(_component_v_text_field, {
                     modelValue: activeKey.value,
                     "onUpdate:modelValue": _cache[13] || (_cache[13] = $event => ((activeKey).value = $event)),
@@ -546,7 +540,7 @@ return (_ctx, _cache) => {
                     "hide-details": ""
                   }, null, 8, ["modelValue"])
                 ]),
-                __mf_11("div", _hoisted_20, [
+                __mf_11("div", _hoisted_21, [
                   __mf_13(_component_v_autocomplete, {
                     modelValue: activeModel.value,
                     "onUpdate:modelValue": _cache[16] || (_cache[16] = $event => ((activeModel).value = $event)),
@@ -569,7 +563,7 @@ return (_ctx, _cache) => {
                     "prepend-icon": "mdi-cloud-download-outline",
                     onClick: fetchModels
                   }, {
-                    default: __mf_20(() => [...(_cache[27] || (_cache[27] = [
+                    default: __mf_20(() => [...(_cache[26] || (_cache[26] = [
                       __mf_12(" 拉取模型 ", -1)
                     ]))]),
                     _: 1
@@ -581,13 +575,13 @@ return (_ctx, _cache) => {
                     loading: testing.value,
                     onClick: testProvider
                   }, {
-                    default: __mf_20(() => [...(_cache[28] || (_cache[28] = [
+                    default: __mf_20(() => [...(_cache[27] || (_cache[27] = [
                       __mf_12(" 验证 ", -1)
                     ]))]),
                     _: 1
                   }, 8, ["disabled", "loading"])
                 ]),
-                __mf_11("div", _hoisted_21, [
+                __mf_11("div", _hoisted_22, [
                   __mf_13(_component_v_chip, {
                     size: "small",
                     color: apiKeys[activeProvider.value.key] ? 'success' : 'grey',
@@ -618,7 +612,7 @@ return (_ctx, _cache) => {
                         color: "error",
                         onClick: clearProvider
                       }, {
-                        default: __mf_20(() => [...(_cache[29] || (_cache[29] = [
+                        default: __mf_20(() => [...(_cache[28] || (_cache[28] = [
                           __mf_12(" 清除该服务商配置 ", -1)
                         ]))]),
                         _: 1
@@ -633,7 +627,7 @@ return (_ctx, _cache) => {
                       density: "compact",
                       class: "mt-4"
                     }, {
-                      default: __mf_20(() => [...(_cache[30] || (_cache[30] = [
+                      default: __mf_20(() => [...(_cache[29] || (_cache[29] = [
                         __mf_12(" Gemini 走原生接口，模型名形如 ", -1),
                         __mf_11("code", null, "gemini-2.5-flash", -1),
                         __mf_12("。 ", -1)
@@ -648,7 +642,7 @@ return (_ctx, _cache) => {
                         density: "compact",
                         class: "mt-4"
                       }, {
-                        default: __mf_20(() => [...(_cache[31] || (_cache[31] = [
+                        default: __mf_20(() => [...(_cache[30] || (_cache[30] = [
                           __mf_12(" 自定义服务商需兼容 OpenAI 的 ", -1),
                           __mf_11("code", null, "/chat/completions", -1),
                           __mf_12(" 接口；接口地址要填到 ", -1),
@@ -667,6 +661,6 @@ return (_ctx, _cache) => {
 }
 
 };
-const Config = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-3b6ca46d"]]);
+const Config = /*#__PURE__*/_export_sfc(_sfc_main, [['__scopeId',"data-v-559f179f"]]);
 
 export { Config as default };

@@ -502,7 +502,7 @@ class SubtitleTranslator(_PluginBase):
     plugin_name = "字幕机翻"
     plugin_desc = "搜索媒体库影视，提取内嵌字幕并用大模型翻译为中文，写回同目录并刷新媒体服务器。"
     plugin_icon = "Moviepilot_A.png"
-    plugin_version = "2.8.0"
+    plugin_version = "2.8.2"
     plugin_author = "shawnxu"
     author_url = "https://github.com/shawnxustudio"
     plugin_config_prefix = "subtitletranslator_"

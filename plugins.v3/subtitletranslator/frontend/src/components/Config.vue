@@ -26,7 +26,7 @@
       <nav class="cfg-nav">
         <button
           type="button"
-          class="nav-item"
+          class="nav-item nav-item--global"
           :class="{ 'nav-item--active': active === 'global' }"
           @click="active = 'global'"
         >
@@ -45,7 +45,7 @@
         >
           <span class="nav-dot" :class="{ 'nav-dot--on': !!apiKeys[provider.key] }" />
           <span class="nav-label">{{ provider.name }}</span>
-          <v-chip v-if="config.provider === provider.key" size="x-small" variant="tonal" class="nav-current">当前</v-chip>
+          <span v-if="config.provider === provider.key" class="nav-current">当前</span>
           <span class="nav-sub">{{ modelsMap[provider.key] || '未配置' }}</span>
         </button>
       </nav>
@@ -421,93 +421,177 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 字号沿用参考插件的 rem 阶梯：1.05 标题 / .9 小节 / .85 主要文字 / .8 表单 /
+   .76 说明 / .72 次要 / .7 极小。间距按 3/6/8/12/14/16/18/24 的节奏走。 */
 .cfg {
   display: flex;
   flex-direction: column;
   min-height: 380px;
+  color: rgb(var(--v-theme-on-surface));
+  --cfg-line: rgba(var(--v-theme-on-surface), 0.1);
 }
+.cfg, .cfg * { box-sizing: border-box; }
+
+/* 头部 */
 .cfg-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid rgba(var(--v-border-color), 0.16);
+  gap: 16px;
+  min-height: 64px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--cfg-line);
 }
-.cfg-brand { display: flex; align-items: center; gap: 10px; }
+.cfg-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .cfg-logo {
-  width: 34px; height: 34px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 10px;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
   background: rgba(var(--v-theme-primary), 0.12);
   color: rgb(var(--v-theme-primary));
 }
-.cfg-crumb { font-size: 11px; opacity: 0.55; }
-.cfg-title { font-size: 16px; font-weight: 700; line-height: 1.2; }
-.cfg-actions { display: flex; align-items: center; gap: 8px; }
-.cfg-dirty { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgb(var(--v-theme-warning)); }
-
-.cfg-body {
-  display: grid;
-  grid-template-columns: 244px minmax(0, 1fr);
-  gap: 0;
-  flex: 1;
-  min-height: 0;
+.cfg-crumb { font-size: 0.68rem; line-height: 1.2; color: rgba(var(--v-theme-on-surface), 0.5); }
+.cfg-title { margin: 2px 0 0; font-size: 1.05rem; font-weight: 700; line-height: 1.3; }
+.cfg-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.cfg-dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgb(var(--v-theme-warning));
+  white-space: nowrap;
 }
+
+/* 主体：左导航 + 右内容 */
+.cfg-body { display: grid; grid-template-columns: 248px minmax(0, 1fr); flex: 1; min-height: 0; }
 .cfg-nav {
-  padding: 12px 10px;
-  border-right: 1px solid rgba(var(--v-border-color), 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 12px 18px;
+  border-right: 1px solid var(--cfg-line);
   overflow-y: auto;
   max-height: 62vh;
 }
+
+/* 分组标题：文字 + 分隔线，和参考插件一致 */
 .nav-heading {
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  opacity: 0.5;
-  padding: 14px 10px 6px;
-}
-.nav-item {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 16px 1fr auto;
-  grid-template-areas: "dot label current" "dot sub sub";
+  display: flex;
   align-items: center;
-  gap: 2px 8px;
-  padding: 8px 10px;
-  border-radius: 9px;
+  gap: 8px;
+  margin: 14px 0 4px;
+  padding: 0 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.48);
+  white-space: nowrap;
+}
+.nav-heading::after { content: ""; flex: 1; height: 1px; background: rgba(var(--v-theme-on-surface), 0.12); }
+
+/* 分组项（全局设置）用单行「图标 + 文字」，和服务商的两行布局分开，避免图标挤进点位列 */
+.nav-item.nav-item--global {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.nav-item.nav-item--global :deep(.v-icon) { flex: 0 0 18px; }
+
+/* 导航项：两行布局（名称 / 模型），行高与内边距固定，避免长短名字导致参差 */
+.nav-item {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  grid-template-areas: "dot label extra" "dot sub sub";
+  align-items: center;
+  gap: 3px 10px;
+  min-height: 46px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 10px;
   background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.78);
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .nav-item:hover { background: rgba(var(--v-theme-on-surface), 0.05); }
-.nav-item--active { background: rgba(var(--v-theme-primary), 0.12); }
-.nav-item--active .nav-label { color: rgb(var(--v-theme-primary)); font-weight: 600; }
+.nav-item--active { background: rgba(var(--v-theme-primary), 0.1); }
+.nav-item--active .nav-label { color: rgb(var(--v-theme-primary)); }
 .nav-dot {
   grid-area: dot;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: rgba(var(--v-border-color), 0.6);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(var(--v-theme-on-surface), 0.22);
 }
-.nav-dot--on { background: rgb(var(--v-theme-success)); box-shadow: 0 0 0 3px rgba(var(--v-theme-success), 0.15); }
-.nav-label { grid-area: label; font-size: 13px; }
-.nav-current { grid-area: current; }
-.nav-sub { grid-area: sub; font-size: 11px; opacity: 0.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 16px; }
+.nav-dot--on { background: rgb(var(--v-theme-success)); box-shadow: 0 0 0 3px rgba(var(--v-theme-success), 0.16); }
+.nav-label {
+  grid-area: label;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-current {
+  grid-area: extra;
+  justify-self: end;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(var(--v-theme-primary), 0.14);
+  color: rgb(var(--v-theme-primary));
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.nav-sub {
+  grid-area: sub;
+  padding-left: 18px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.cfg-content { padding: 18px 20px 24px; overflow-y: auto; max-height: 62vh; }
+/* 右侧内容 */
+.cfg-content { min-width: 0; padding: 18px 20px 24px; overflow-y: auto; max-height: 62vh; }
 .panel-head { margin-bottom: 16px; }
-.panel-head--row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.panel-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; }
-.panel-desc { font-size: 12px; opacity: 0.6; margin-top: 4px; line-height: 1.6; }
-.switch-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 24px; margin-bottom: 6px; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
-.model-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
-.provider-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.panel-head--row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.panel-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.05rem; font-weight: 700; line-height: 1.3; }
+.panel-desc { margin: 4px 0 0; font-size: 0.76rem; line-height: 1.55; color: rgba(var(--v-theme-on-surface), 0.6); }
+
+.switch-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 24px;
+  margin-bottom: 8px;
+}
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.model-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; margin-top: 14px; }
+.provider-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+/* 表单与开关文字统一到 .83rem，避免有的粗大有的细小 */
+.cfg :deep(.v-label) { font-size: 0.83rem; }
+.cfg :deep(.v-btn) { font-size: 0.83rem; letter-spacing: 0; text-transform: none; }
+.cfg :deep(.v-alert__content) { font-size: 0.83rem; line-height: 1.5; }
+.cfg :deep(.v-alert) { padding: 10px 12px; }
 
 @media (max-width: 860px) {
   .cfg-body { grid-template-columns: 1fr; }
-  .cfg-nav { max-height: none; border-right: none; border-bottom: 1px solid rgba(var(--v-border-color), 0.16); }
+  .cfg-nav { max-height: none; border-right: none; border-bottom: 1px solid var(--cfg-line); }
   .cfg-content { max-height: none; }
-  .grid-2, .grid-3, .model-row, .switch-row { grid-template-columns: 1fr; }
+  .switch-row, .grid-2, .grid-3, .model-row { grid-template-columns: 1fr; }
 }
 </style>

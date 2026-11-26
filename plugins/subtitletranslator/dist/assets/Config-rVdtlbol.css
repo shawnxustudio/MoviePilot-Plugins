@@ -1,0 +1,113 @@
+
+.cfg[data-v-3b6ca46d] {
+  display: flex;
+  flex-direction: column;
+  min-height: 380px;
+}
+.cfg-head[data-v-3b6ca46d] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.16);
+}
+.cfg-brand[data-v-3b6ca46d] { display: flex; align-items: center; gap: 10px;
+}
+.cfg-logo[data-v-3b6ca46d] {
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
+}
+.cfg-crumb[data-v-3b6ca46d] { font-size: 11px; opacity: 0.55;
+}
+.cfg-title[data-v-3b6ca46d] { font-size: 16px; font-weight: 700; line-height: 1.2;
+}
+.cfg-actions[data-v-3b6ca46d] { display: flex; align-items: center; gap: 8px;
+}
+.cfg-dirty[data-v-3b6ca46d] { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgb(var(--v-theme-warning));
+}
+.cfg-body[data-v-3b6ca46d] {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+}
+.cfg-nav[data-v-3b6ca46d] {
+  padding: 12px 10px;
+  border-right: 1px solid rgba(var(--v-border-color), 0.16);
+  overflow-y: auto;
+  max-height: 62vh;
+}
+.nav-heading[data-v-3b6ca46d] {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+  padding: 14px 10px 6px;
+}
+.nav-item[data-v-3b6ca46d] {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  grid-template-areas: "dot label current" "dot sub sub";
+  align-items: center;
+  gap: 2px 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.nav-item[data-v-3b6ca46d]:hover { background: rgba(var(--v-theme-on-surface), 0.05);
+}
+.nav-item--active[data-v-3b6ca46d] { background: rgba(var(--v-theme-primary), 0.12);
+}
+.nav-item--active .nav-label[data-v-3b6ca46d] { color: rgb(var(--v-theme-primary)); font-weight: 600;
+}
+.nav-dot[data-v-3b6ca46d] {
+  grid-area: dot;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(var(--v-border-color), 0.6);
+}
+.nav-dot--on[data-v-3b6ca46d] { background: rgb(var(--v-theme-success)); box-shadow: 0 0 0 3px rgba(var(--v-theme-success), 0.15);
+}
+.nav-label[data-v-3b6ca46d] { grid-area: label; font-size: 13px;
+}
+.nav-current[data-v-3b6ca46d] { grid-area: current;
+}
+.nav-sub[data-v-3b6ca46d] { grid-area: sub; font-size: 11px; opacity: 0.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 16px;
+}
+.cfg-content[data-v-3b6ca46d] { padding: 18px 20px 24px; overflow-y: auto; max-height: 62vh;
+}
+.panel-head[data-v-3b6ca46d] { margin-bottom: 16px;
+}
+.panel-head--row[data-v-3b6ca46d] { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.panel-title[data-v-3b6ca46d] { font-size: 15px; font-weight: 700; display: flex; align-items: center;
+}
+.panel-desc[data-v-3b6ca46d] { font-size: 12px; opacity: 0.6; margin-top: 4px; line-height: 1.6;
+}
+.switch-row[data-v-3b6ca46d] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 24px; margin-bottom: 6px;
+}
+.grid-2[data-v-3b6ca46d] { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;
+}
+.grid-3[data-v-3b6ca46d] { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px;
+}
+.model-row[data-v-3b6ca46d] { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px;
+}
+.provider-status[data-v-3b6ca46d] { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+@media (max-width: 860px) {
+.cfg-body[data-v-3b6ca46d] { grid-template-columns: 1fr;
+}
+.cfg-nav[data-v-3b6ca46d] { max-height: none; border-right: none; border-bottom: 1px solid rgba(var(--v-border-color), 0.16);
+}
+.cfg-content[data-v-3b6ca46d] { max-height: none;
+}
+.grid-2[data-v-3b6ca46d], .grid-3[data-v-3b6ca46d], .model-row[data-v-3b6ca46d], .switch-row[data-v-3b6ca46d] { grid-template-columns: 1fr;
+}
+}

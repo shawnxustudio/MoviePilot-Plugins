@@ -46,24 +46,24 @@ def test_single_implementation_shared_by_both_generations() -> None:
 def test_index_metadata_matches_source() -> None:
     """两个索引的版本、系统要求与代码声明必须一致。"""
     source = _source(V3_DIR / "__init__.py")
-    version = "2.7.0"
-    assert f'plugin_version = "{version}"' in source
-
     v3_entry = json.loads((REPO_ROOT / "package.v3.json").read_text(encoding="utf-8"))[
         "SubtitleTranslator"
     ]
-    assert v3_entry["version"] == version
+    v2_entry = json.loads((REPO_ROOT / "package.json").read_text(encoding="utf-8"))[
+        "SubtitleTranslator"
+    ]
+
+    # 版本以 V3 索引为准，代码与 V2 索引都跟随它
+    version = v3_entry["version"]
+    assert f'plugin_version = "{version}"' in source
+    assert v2_entry["version"] == version
+
     assert v3_entry["system_version"] == ">=3.0.0"
     assert v3_entry["release"] is True
     assert v3_entry["history"][f"v{version}"]
 
-    v2_entry = json.loads((REPO_ROOT / "package.json").read_text(encoding="utf-8"))[
-        "SubtitleTranslator"
-    ]
-    assert v2_entry["version"] == version
     assert v2_entry["v2"] is True
     assert v2_entry["system_version"].startswith(">=2.")
-    assert v2_entry["history"][f"v{version}"]
 
 
 def test_imports_stay_on_stable_sdk() -> None:

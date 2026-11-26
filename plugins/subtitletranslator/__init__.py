@@ -502,7 +502,7 @@ class SubtitleTranslator(_PluginBase):
     plugin_name = "字幕机翻"
     plugin_desc = "搜索媒体库影视，提取内嵌字幕并用大模型翻译为中文，写回同目录并刷新媒体服务器。"
     plugin_icon = "Moviepilot_A.png"
-    plugin_version = "2.7.0"
+    plugin_version = "2.8.0"
     plugin_author = "shawnxu"
     author_url = "https://github.com/shawnxustudio"
     plugin_config_prefix = "subtitletranslator_"
@@ -518,6 +518,8 @@ class SubtitleTranslator(_PluginBase):
         self._provider = "deepseek"
         self._api_key = ""
         self._api_keys: Dict[str, str] = {}
+        self._models: Dict[str, str] = {}
+        self._provider_urls: Dict[str, str] = {}
         self._model = ""
         self._api_url = ""
         self._batch_size = 20
@@ -550,8 +552,18 @@ class SubtitleTranslator(_PluginBase):
             if isinstance(raw_keys, dict) else {}
         )
         self._api_key = str(config.get("api_key") or "") or self._api_keys.get(self._provider, "")
-        self._model = str(config.get("model") or "")
-        self._api_url = str(config.get("api_url") or "")
+        raw_urls = config.get("provider_urls")
+        self._provider_urls = (
+            {str(k): str(v) for k, v in raw_urls.items() if k and v}
+            if isinstance(raw_urls, dict) else {}
+        )
+        raw_models = config.get("models")
+        self._models = (
+            {str(k): str(v) for k, v in raw_models.items() if k and v}
+            if isinstance(raw_models, dict) else {}
+        )
+        self._model = str(config.get("model") or "") or self._models.get(self._provider, "")
+        self._api_url = str(config.get("api_url") or "") or self._provider_urls.get(self._provider, "")
         self._glossary = str(config.get("glossary") or "")
         self._output_mode = "zh" if str(config.get("output_mode") or "") == "zh" else "zh-en"
         self._overwrite = bool(config.get("overwrite"))
@@ -627,6 +639,8 @@ class SubtitleTranslator(_PluginBase):
             "provider": "deepseek",
             "api_key": "",
             "api_keys": {},
+            "models": {},
+            "provider_urls": {},
             "model": "",
             "api_url": "",
             "batch_size": 20,

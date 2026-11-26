@@ -1,167 +1,243 @@
 <template>
-  <div class="subtr-config">
-    <v-card variant="outlined">
-      <v-card-item>
-        <v-card-title class="d-flex align-center">
-          <v-icon class="mr-2" color="primary">mdi-cog</v-icon>
-          字幕机翻配置
-        </v-card-title>
-      </v-card-item>
-
-      <v-card-text>
-        <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mb-3">{{ error }}</v-alert>
-        <v-alert v-if="message" type="success" variant="tonal" density="compact" class="mb-3">{{ message }}</v-alert>
-
-        <div class="switch-row">
-          <v-switch v-model="config.enabled" label="启用插件" color="primary" density="compact" hide-details inset />
-          <v-switch v-model="config.notify" label="完成后通知" color="primary" density="compact" hide-details inset />
-          <v-switch v-model="config.refresh_server" label="写回后刷新媒体服务器" color="primary" density="compact" hide-details inset />
+  <section class="cfg">
+    <!-- 头部：标题 + 未保存提示 + 保存 -->
+    <header class="cfg-head">
+      <div class="cfg-brand">
+        <div class="cfg-logo"><v-icon icon="mdi-subtitles-outline" size="20" /></div>
+        <div>
+          <div class="cfg-crumb">MoviePilot · 插件</div>
+          <h1 class="cfg-title">字幕机翻 · 设置</h1>
         </div>
+      </div>
+      <div class="cfg-actions">
+        <span v-if="dirty" class="cfg-dirty"><v-icon icon="mdi-circle" size="8" color="warning" /> 有未保存的修改</span>
+        <v-btn color="primary" variant="flat" :loading="saving" @click="save">
+          <v-icon icon="mdi-content-save-outline" start />保存
+        </v-btn>
+        <v-btn icon="mdi-close" size="small" variant="text" :aria-label="'关闭'" @click="emit('close')" />
+      </div>
+    </header>
 
-        <v-divider class="my-4" />
+    <v-alert v-if="error" type="error" variant="tonal" density="compact" class="mx-4 mb-0">{{ error }}</v-alert>
+    <v-alert v-if="message" type="success" variant="tonal" density="compact" class="mx-4 mb-0">{{ message }}</v-alert>
 
-        <div class="grid-row">
-          <v-select
-            v-model="config.provider"
-            :items="providerOptions"
-            label="翻译服务商"
-            density="compact"
-            variant="outlined"
-            hide-details
-            @update:model-value="onProviderChange"
-          />
-          <v-text-field
-            v-model="config.api_key"
-            label="API Key"
-            placeholder="sk-..."
-            density="compact"
-            variant="outlined"
-            hide-details
-            :append-inner-icon="showKey ? 'mdi-eye-off' : 'mdi-eye'"
-            :type="showKey ? 'text' : 'password'"
-            @click:append-inner="showKey = !showKey"
-          />
-        </div>
+    <div class="cfg-body">
+      <!-- 左侧导航 -->
+      <nav class="cfg-nav">
+        <button
+          type="button"
+          class="nav-item"
+          :class="{ 'nav-item--active': active === 'global' }"
+          @click="active = 'global'"
+        >
+          <v-icon icon="mdi-cog-outline" size="18" />
+          <span class="nav-label">全局设置</span>
+        </button>
 
-        <div class="grid-row mt-3">
-          <v-autocomplete
-            v-model="config.model"
-            :items="models"
-            :loading="loadingModels"
-            label="模型"
-            placeholder="点右侧按钮拉取，或直接输入模型名"
-            density="compact"
-            variant="outlined"
-            hide-details
-            clearable
-            chips
-            closable-chips
-            :menu-props="{ maxHeight: 320 }"
-            no-data-text="先填 Key 再拉取模型列表"
-          />
-          <v-btn
-            color="secondary"
-            variant="tonal"
-            :loading="loadingModels"
-            prepend-icon="mdi-cloud-download"
-            @click="fetchModels"
-          >
-            拉取模型
-          </v-btn>
-        </div>
+        <div class="nav-heading">翻译服务商</div>
+        <button
+          v-for="provider in providerList"
+          :key="provider.key"
+          type="button"
+          class="nav-item"
+          :class="{ 'nav-item--active': active === provider.key }"
+          @click="active = provider.key"
+        >
+          <span class="nav-dot" :class="{ 'nav-dot--on': !!apiKeys[provider.key] }" />
+          <span class="nav-label">{{ provider.name }}</span>
+          <v-chip v-if="config.provider === provider.key" size="x-small" variant="tonal" class="nav-current">当前</v-chip>
+          <span class="nav-sub">{{ modelsMap[provider.key] || '未配置' }}</span>
+        </button>
+      </nav>
 
-        <div class="grid-row mt-3">
-          <v-text-field
-            v-model="config.api_url"
-            label="自定义接口地址（留空用服务商默认）"
-            placeholder="https://api.deepseek.com"
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-          <v-select
-            v-model="config.output_mode"
-            :items="outputOptions"
-            label="输出模式"
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-        </div>
+      <!-- 右侧内容 -->
+      <div class="cfg-content">
+        <!-- 全局设置 -->
+        <template v-if="active === 'global'">
+          <div class="panel-head">
+            <h2 class="panel-title">全局设置</h2>
+            <p class="panel-desc">任务行为与翻译输出格式；服务商相关的密钥与模型在左侧逐个维护。</p>
+          </div>
 
-        <div class="grid-row grid-3 mt-3">
-          <v-text-field
-            v-model.number="config.batch_size"
-            label="每批行数"
-            type="number"
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-          <v-text-field
-            v-model.number="config.delay"
-            label="批次间隔（秒）"
-            type="number"
-            step="0.5"
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-          <v-text-field
-            v-model.number="config.retries"
-            label="失败重试次数"
-            type="number"
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-        </div>
+          <div class="switch-row">
+            <v-switch v-model="config.enabled" label="启用插件" color="primary" density="compact" hide-details inset />
+            <v-switch v-model="config.notify" label="完成后通知" color="primary" density="compact" hide-details inset />
+            <v-switch v-model="config.refresh_server" label="写回后刷新媒体服务器" color="primary" density="compact" hide-details inset />
+            <v-switch v-model="config.overwrite" label="总是重翻已有中文字幕" color="warning" density="compact" hide-details inset />
+          </div>
 
-        <div class="grid-row mt-3">
+          <div class="grid-2">
+            <v-select
+              v-model="config.output_mode"
+              :items="outputOptions"
+              label="输出模式"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+            <v-select
+              v-model="config.provider"
+              :items="providerOptions"
+              label="当前使用的服务商"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+          </div>
+
+          <div class="grid-3">
+            <v-text-field v-model.number="config.batch_size" label="每批行数" type="number" density="compact" variant="outlined" hide-details />
+            <v-text-field v-model.number="config.delay" label="批次间隔（秒）" type="number" step="0.5" density="compact" variant="outlined" hide-details />
+            <v-text-field v-model.number="config.retries" label="失败重试次数" type="number" density="compact" variant="outlined" hide-details />
+          </div>
+
           <v-textarea
             v-model="config.glossary"
             label="术语表（每行「原文=译文」，可留空）"
             placeholder="Sheldon=谢尔顿&#10;Westeros=维斯特洛"
-            rows="3"
+            rows="4"
             density="compact"
             variant="outlined"
             hide-details
+            class="mt-3"
           />
-          <div class="side-switch">
-            <v-switch v-model="config.overwrite" label="覆盖已有中文字幕" color="warning" density="compact" hide-details inset />
-            <div class="hint">默认跳过已有 <code>.zh.srt</code> 的文件</div>
-          </div>
-        </div>
-      </v-card-text>
 
-      <v-card-actions class="px-4 pb-4">
-        <v-btn color="primary" :loading="saving" prepend-icon="mdi-content-save" @click="save">保存</v-btn>
-      </v-card-actions>
-    </v-card>
-  </div>
+          <v-alert type="info" variant="tonal" density="compact" class="mt-4">
+            切换「当前使用的服务商」后，翻译会使用该服务商下维护的密钥与模型。
+          </v-alert>
+        </template>
+
+        <!-- 服务商详情 -->
+        <template v-else-if="activeProvider">
+          <div class="panel-head panel-head--row">
+            <div>
+              <h2 class="panel-title">
+                <v-icon :icon="activeProvider.icon" size="20" class="mr-2" />{{ activeProvider.name }}
+              </h2>
+              <p class="panel-desc">{{ activeProvider.hint }}</p>
+            </div>
+            <v-btn
+              v-if="config.provider !== activeProvider.key"
+              size="small"
+              variant="tonal"
+              color="primary"
+              prepend-icon="mdi-check-circle-outline"
+              @click="config.provider = activeProvider.key"
+            >
+              设为当前
+            </v-btn>
+            <v-chip v-else size="small" color="primary" variant="flat">当前使用中</v-chip>
+          </div>
+
+          <div class="grid-2">
+            <v-text-field
+              v-model="activeKey"
+              :label="activeProvider.key === 'custom' ? 'API Key（可留空）' : 'API Key'"
+              placeholder="sk-..."
+              density="compact"
+              variant="outlined"
+              hide-details
+              :type="showKey ? 'text' : 'password'"
+              :append-inner-icon="showKey ? 'mdi-eye-off' : 'mdi-eye'"
+              @click:append-inner="showKey = !showKey"
+            />
+            <v-text-field
+              v-model="activeUrl"
+              label="接口地址（留空用服务商默认）"
+              placeholder="https://api.deepseek.com"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+          </div>
+
+          <div class="model-row mt-3">
+            <v-autocomplete
+              v-model="activeModel"
+              :items="modelOptions"
+              :loading="loadingModels"
+              label="模型"
+              placeholder="点「拉取模型」获取，或直接输入"
+              density="compact"
+              variant="outlined"
+              hide-details
+              clearable
+              closable-chips
+              :menu-props="{ maxHeight: 320 }"
+              no-data-text="先填 Key 再拉取模型列表"
+            />
+            <v-btn
+              color="secondary"
+              variant="tonal"
+              :loading="loadingModels"
+              prepend-icon="mdi-cloud-download-outline"
+              @click="fetchModels"
+            >
+              拉取模型
+            </v-btn>
+            <v-btn
+              variant="text"
+              :disabled="!activeKey && activeProvider.key !== 'custom'"
+              prepend-icon="mdi-connection"
+              :loading="testing"
+              @click="testProvider"
+            >
+              验证
+            </v-btn>
+          </div>
+
+          <div class="provider-status mt-3">
+            <v-chip size="small" :color="apiKeys[activeProvider.key] ? 'success' : 'grey'" variant="tonal">
+              {{ apiKeys[activeProvider.key] ? '已配置密钥' : '未配置密钥' }}
+            </v-chip>
+            <v-chip v-if="modelsMap[activeProvider.key]" size="small" variant="tonal">
+              模型：{{ modelsMap[activeProvider.key] }}
+            </v-chip>
+            <v-btn
+              v-if="apiKeys[activeProvider.key]"
+              size="small"
+              variant="text"
+              color="error"
+              @click="clearProvider"
+            >
+              清除该服务商配置
+            </v-btn>
+          </div>
+
+          <v-alert v-if="activeProvider.key === 'gemini'" type="info" variant="tonal" density="compact" class="mt-4">
+            Gemini 走原生接口，模型名形如 <code>gemini-2.5-flash</code>。
+          </v-alert>
+          <v-alert v-else-if="activeProvider.key === 'custom'" type="info" variant="tonal" density="compact" class="mt-4">
+            自定义服务商需兼容 OpenAI 的 <code>/chat/completions</code> 接口；接口地址要填到 <code>/v1</code> 这一层。
+          </v-alert>
+        </template>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 const props = defineProps({
   initialConfig: { type: Object, default: () => ({}) },
   api: { type: Object, default: () => ({}) },
 })
 
-const emit = defineEmits(['save', 'close', 'switch'])
+const emit = defineEmits(['save', 'layout', 'close', 'switch'])
 
-const providerOptions = [
-  { title: 'DeepSeek', value: 'deepseek' },
-  { title: '硅基流动', value: 'siliconflow' },
-  { title: '阿里云百炼', value: 'aliyun' },
-  { title: '月之暗面 Kimi', value: 'moonshot' },
-  { title: '智谱 BigModel', value: 'zhipu' },
-  { title: 'OpenRouter', value: 'openrouter' },
-  { title: 'Google Gemini', value: 'gemini' },
-  { title: '自定义 OpenAI 兼容', value: 'custom' },
+const PROVIDERS = [
+  { key: 'deepseek', name: 'DeepSeek', icon: 'mdi-robot-outline', hint: '官方接口，字幕翻译性价比高，默认关闭思考模式。' },
+  { key: 'siliconflow', name: '硅基流动', icon: 'mdi-cloud-outline', hint: '国内聚合平台，模型选择多。' },
+  { key: 'aliyun', name: '阿里云百炼', icon: 'mdi-cloud-braces', hint: 'DashScope 兼容模式，qwen 系列。' },
+  { key: 'moonshot', name: '月之暗面 Kimi', icon: 'mdi-moon-waning-crescent', hint: 'Kimi 长上下文，适合长片字幕。' },
+  { key: 'zhipu', name: '智谱 BigModel', icon: 'mdi-lightning-bolt-outline', hint: 'GLM 系列，速度快。' },
+  { key: 'openrouter', name: 'OpenRouter', icon: 'mdi-routes', hint: '聚合多家模型，需要代理时在系统里配置。' },
+  { key: 'gemini', name: 'Google Gemini', icon: 'mdi-google', hint: '原生接口，国内访问通常需要代理。' },
+  { key: 'custom', name: '自定义（OpenAI 兼容）', icon: 'mdi-server', hint: '任意兼容 OpenAI 的服务，如自建网关、Ollama。' },
 ]
 
+const providerOptions = PROVIDERS.map(item => ({ title: item.name, value: item.key }))
 const outputOptions = [
   { title: '双语（译文在上、原文在下）', value: 'zh-en' },
   { title: '仅译文', value: 'zh' },
@@ -171,27 +247,53 @@ const defaults = {
   enabled: false,
   notify: true,
   refresh_server: true,
+  overwrite: false,
+  output_mode: 'zh-en',
   provider: 'deepseek',
-  api_key: '',
-  api_keys: {},
-  model: '',
-  api_url: '',
   batch_size: 20,
   delay: 0.5,
   retries: 2,
   glossary: '',
-  output_mode: 'zh-en',
-  overwrite: false,
+  api_key: '',
+  model: '',
+  api_url: '',
 }
 
 const config = reactive({ ...defaults })
-const models = ref([])
 const apiKeys = reactive({})
-const loadingModels = ref(false)
-const saving = ref(false)
+const modelsMap = reactive({})
+const providerUrls = reactive({})
+const models = ref([])
+const active = ref('global')
 const showKey = ref(false)
+const loadingModels = ref(false)
+const testing = ref(false)
+const saving = ref(false)
 const error = ref('')
 const message = ref('')
+const snapshot = ref('')
+
+const providerList = computed(() => PROVIDERS)
+const activeProvider = computed(() => PROVIDERS.find(item => item.key === active.value) || null)
+
+const activeKey = computed({
+  get: () => apiKeys[active.value] || '',
+  set: (value) => { apiKeys[active.value] = value },
+})
+const activeModel = computed({
+  get: () => modelsMap[active.value] || '',
+  set: (value) => { modelsMap[active.value] = value || '' },
+})
+const activeUrl = computed({
+  get: () => providerUrls[active.value] || '',
+  set: (value) => { providerUrls[active.value] = value || '' },
+})
+const modelOptions = computed(() => {
+  const current = modelsMap[active.value]
+  const list = models.value.slice()
+  if (current && !list.includes(current)) list.unshift(current)
+  return list
+})
 
 function unwrap(res) {
   if (!res) return {}
@@ -199,15 +301,33 @@ function unwrap(res) {
   return res
 }
 
+function payload() {
+  const provider = config.provider
+  return {
+    ...config,
+    api_key: apiKeys[provider] || '',
+    model: modelsMap[provider] || '',
+    api_keys: { ...apiKeys },
+    models: { ...modelsMap },
+    provider_urls: { ...providerUrls },
+  }
+}
+
+function refreshSnapshot() {
+  snapshot.value = JSON.stringify(payload())
+}
+
+const dirty = computed(() => JSON.stringify(payload()) !== snapshot.value)
+
 async function fetchModels() {
   error.value = ''
   message.value = ''
   loadingModels.value = true
   try {
     const body = unwrap(await props.api.post('plugin/SubtitleTranslator/models', {
-      provider: config.provider,
-      api_key: config.api_key,
-      api_url: config.api_url,
+      provider: active.value,
+      api_key: activeKey.value,
+      api_url: activeUrl.value,
     }))
     if (body.success === false) {
       error.value = body.message || '拉取失败'
@@ -215,9 +335,7 @@ async function fetchModels() {
     }
     models.value = body.models || []
     message.value = body.message || `共 ${models.value.length} 个模型`
-    if (!config.model && models.value.length) {
-      config.model = models.value[0]
-    }
+    if (!modelsMap[active.value] && models.value.length) modelsMap[active.value] = models.value[0]
   } catch (err) {
     error.value = err?.message || '拉取模型失败'
   } finally {
@@ -225,12 +343,46 @@ async function fetchModels() {
   }
 }
 
+async function testProvider() {
+  error.value = ''
+  message.value = ''
+  testing.value = true
+  try {
+    const body = unwrap(await props.api.post('plugin/SubtitleTranslator/models', {
+      provider: active.value,
+      api_key: activeKey.value,
+      api_url: activeUrl.value,
+    }))
+    if (body.success === false) {
+      error.value = `${activeProvider.value.name} 验证失败：${body.message || '未知原因'}`
+    } else {
+      message.value = `${activeProvider.value.name} 可用，返回 ${body.models?.length || 0} 个模型`
+    }
+  } catch (err) {
+    error.value = err?.message || '验证失败'
+  } finally {
+    testing.value = false
+  }
+}
+
+function clearProvider() {
+  apiKeys[active.value] = ''
+  modelsMap[active.value] = ''
+  providerUrls[active.value] = ''
+  models.value = []
+  if (config.provider === active.value) {
+    config.enabled = config.enabled
+  }
+  message.value = `已清除 ${activeProvider.value.name} 的配置（保存后生效）`
+}
+
 async function save() {
   saving.value = true
   error.value = ''
   message.value = ''
   try {
-    emit('save', { ...config, api_keys: { ...apiKeys } })
+    emit('save', payload())
+    snapshot.value = JSON.stringify(payload())
     message.value = '已保存'
   } catch (err) {
     error.value = err?.message || '保存失败'
@@ -239,67 +391,123 @@ async function save() {
   }
 }
 
-function onProviderChange() {
-  // 切服务商：换回该服务商自己的 Key，并重新拉一次模型
-  config.model = ''
-  models.value = []
-  config.api_key = apiKeys[config.provider] || ''
-  if (config.api_key) fetchModels()
+function loadFrom(conf) {
+  Object.keys(defaults).forEach((key) => {
+    if (conf && conf[key] !== undefined) config[key] = conf[key]
+  })
+  const keys = conf?.api_keys
+  if (keys && typeof keys === 'object') Object.keys(keys).forEach((k) => { apiKeys[k] = keys[k] })
+  if (conf?.api_key && !apiKeys[config.provider]) apiKeys[config.provider] = conf.api_key
+
+  const saved = conf?.models
+  if (saved && typeof saved === 'object') Object.keys(saved).forEach((k) => { modelsMap[k] = saved[k] })
+  if (conf?.model && !modelsMap[config.provider]) modelsMap[config.provider] = conf.model
+
+  const urls = conf?.provider_urls
+  if (urls && typeof urls === 'object') Object.keys(urls).forEach((k) => { providerUrls[k] = urls[k] })
+  if (conf?.api_url && !providerUrls[config.provider]) providerUrls[config.provider] = conf.api_url
 }
 
-watch(() => config.api_key, (value) => {
-  if (config.provider) apiKeys[config.provider] = value
+watch(active, () => {
+  models.value = modelsMap[active.value] ? [modelsMap[active.value]] : []
+  error.value = ''
+  message.value = ''
 })
 
-onMounted(async () => {
-  Object.keys(defaults).forEach((key) => {
-    if (props.initialConfig && props.initialConfig[key] !== undefined) {
-      config[key] = props.initialConfig[key]
-    }
-  })
-  const stored = props.initialConfig?.api_keys
-  if (stored && typeof stored === 'object') {
-    Object.keys(stored).forEach((key) => { apiKeys[key] = stored[key] })
-  }
-  // 老配置只有单一 api_key，归到当前服务商名下
-  if (config.api_key && !apiKeys[config.provider]) {
-    apiKeys[config.provider] = config.api_key
-  }
-  if (config.model) models.value = [config.model]
-  if (config.api_key && !config.model) await fetchModels()
+onMounted(() => {
+  loadFrom(props.initialConfig || {})
+  refreshSnapshot()
 })
 </script>
 
 <style scoped>
-.subtr-config {
-  padding: 4px;
-}
-.switch-row {
+.cfg {
   display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  min-height: 380px;
 }
-.grid-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
+.cfg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  align-items: start;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.16);
 }
-.grid-3 {
-  grid-template-columns: repeat(3, 1fr);
+.cfg-brand { display: flex; align-items: center; gap: 10px; }
+.cfg-logo {
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
 }
-.side-switch {
-  padding-top: 8px;
+.cfg-crumb { font-size: 11px; opacity: 0.55; }
+.cfg-title { font-size: 16px; font-weight: 700; line-height: 1.2; }
+.cfg-actions { display: flex; align-items: center; gap: 8px; }
+.cfg-dirty { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgb(var(--v-theme-warning)); }
+
+.cfg-body {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  gap: 0;
+  flex: 1;
+  min-height: 0;
 }
-.hint {
-  font-size: 12px;
-  opacity: 0.65;
-  margin-top: 10px;
+.cfg-nav {
+  padding: 12px 10px;
+  border-right: 1px solid rgba(var(--v-border-color), 0.16);
+  overflow-y: auto;
+  max-height: 62vh;
 }
-@media (max-width: 720px) {
-  .grid-row,
-  .grid-3 {
-    grid-template-columns: 1fr;
-  }
+.nav-heading {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+  padding: 14px 10px 6px;
+}
+.nav-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  grid-template-areas: "dot label current" "dot sub sub";
+  align-items: center;
+  gap: 2px 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.nav-item:hover { background: rgba(var(--v-theme-on-surface), 0.05); }
+.nav-item--active { background: rgba(var(--v-theme-primary), 0.12); }
+.nav-item--active .nav-label { color: rgb(var(--v-theme-primary)); font-weight: 600; }
+.nav-dot {
+  grid-area: dot;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(var(--v-border-color), 0.6);
+}
+.nav-dot--on { background: rgb(var(--v-theme-success)); box-shadow: 0 0 0 3px rgba(var(--v-theme-success), 0.15); }
+.nav-label { grid-area: label; font-size: 13px; }
+.nav-current { grid-area: current; }
+.nav-sub { grid-area: sub; font-size: 11px; opacity: 0.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 16px; }
+
+.cfg-content { padding: 18px 20px 24px; overflow-y: auto; max-height: 62vh; }
+.panel-head { margin-bottom: 16px; }
+.panel-head--row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.panel-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; }
+.panel-desc { font-size: 12px; opacity: 0.6; margin-top: 4px; line-height: 1.6; }
+.switch-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 24px; margin-bottom: 6px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
+.model-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
+.provider-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+  .cfg-body { grid-template-columns: 1fr; }
+  .cfg-nav { max-height: none; border-right: none; border-bottom: 1px solid rgba(var(--v-border-color), 0.16); }
+  .cfg-content { max-height: none; }
+  .grid-2, .grid-3, .model-row, .switch-row { grid-template-columns: 1fr; }
 }
 </style>
